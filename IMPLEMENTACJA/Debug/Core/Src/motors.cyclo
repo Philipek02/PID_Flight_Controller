@@ -1,0 +1,5 @@
+../Core/Src/motors.c:19:6:motors_arm	1
+../Core/Src/motors.c:31:6:motors_stop_all	2
+../Core/Src/motors.c:37:6:motors_set_all_us	2
+../Core/Src/motors.c:47:6:set_motor_us	9
+../Core/Src/motors.c:80:6:mixer_update	1
