@@ -1,27 +1,21 @@
-19:16:44 **** Incremental Build of configuration Debug for project PID_Flight_Controller ****
+15:37:46 **** Incremental Build of configuration Debug for project PID_Flight_Controller ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L432xx -c -I../Core/Inc -I../Drivers/STM32L4xx_HAL_Driver/Inc -I../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
 ../Core/Src/main.c: In function 'main':
-../Core/Src/main.c:147:30: warning: unused variable 'yaw' [-Wunused-variable]
-  147 |           float roll, pitch, yaw;
-      |                              ^~~
-../Core/Src/main.c:147:23: warning: unused variable 'pitch' [-Wunused-variable]
-  147 |           float roll, pitch, yaw;
-      |                       ^~~~~
-../Core/Src/main.c:147:17: warning: unused variable 'roll' [-Wunused-variable]
-  147 |           float roll, pitch, yaw;
-      |                 ^~~~
+../Core/Src/main.c:149:16: warning: unused variable 'arm_switch' [-Wunused-variable]
+  149 |           bool arm_switch = (arm_raw > 1500);
+      |                ^~~~~~~~~~
 arm-none-eabi-gcc -o "PID_Flight_Controller.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\filip\OneDrive\Dokumenty\PJATK\DRONE\IMPLEMENTACJA\STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="PID_Flight_Controller.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: PID_Flight_Controller.elf
  
 arm-none-eabi-size  PID_Flight_Controller.elf 
 arm-none-eabi-objdump -h -S PID_Flight_Controller.elf  > "PID_Flight_Controller.list"
    text	   data	    bss	    dec	    hex	filename
-  17660	     20	   1860	  19540	   4c54	PID_Flight_Controller.elf
+  19768	     20	   1924	  21712	   54d0	PID_Flight_Controller.elf
 Finished building: default.size.stdout
  
 Finished building: PID_Flight_Controller.list
  
 
-19:16:45 Build Finished. 0 errors, 3 warnings. (took 747ms)
+15:37:47 Build Finished. 0 errors, 1 warnings. (took 751ms)
 

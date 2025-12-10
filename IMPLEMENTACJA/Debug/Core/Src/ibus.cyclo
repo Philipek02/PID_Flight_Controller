@@ -1,0 +1,5 @@
+../Core/Src/ibus.c:30:6:ibus_init	1
+../Core/Src/ibus.c:40:6:HAL_UART_RxCpltCallback	2
+../Core/Src/ibus.c:57:13:ibus_parse_frame	6
+../Core/Src/ibus.c:93:10:ibus_read_channel	2
+../Core/Src/ibus.c:104:6:ibus_is_signal_valid	1
