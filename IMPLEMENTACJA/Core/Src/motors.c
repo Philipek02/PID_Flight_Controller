@@ -56,10 +56,10 @@ void set_motor_us(uint8_t motor_id, uint16_t us)
 
     switch(motor_id)
     {
-        case 1: htim1.Instance->CCR1 = us; break;
-        case 2: htim1.Instance->CCR2 = us; break;
-        case 3: htim1.Instance->CCR3 = us; break;
-        case 4: htim1.Instance->CCR4 = us; break;
+        case 1:  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, us); break;
+        case 2:  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, us); break;
+        case 3:  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, us); break;
+        case 4:  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, us); break;
         default: break;
     }
 }
@@ -88,5 +88,23 @@ void mixer_update(float u_roll, float u_pitch, float u_yaw, uint16_t throttle_us
     set_motor_us(2, (uint16_t)m2);    // front left
     set_motor_us(3, (uint16_t)m3);    // front right
     set_motor_us(4, (uint16_t)m4);    // rear right
+}
+
+void esc_calibrate_all(void)
+{
+    // !!! ZDEJMIJ ŚMIGŁA !!!
+    // Procedura:
+    // 1) MCU wystawia MAX (2000us)
+    // 2) Podłączasz baterię ESC
+    // 3) Po kilku sekundach MCU schodzi na MIN (1000us)
+    // 4) ESC zapisują zakres
+
+    motors_set_all_us(2000);
+    HAL_Delay(6000);          // czas na wykrycie MAX i sygnały dźwiękowe
+
+    motors_set_all_us(1000);
+    HAL_Delay(6000);          // czas na zapis MIN
+
+    motors_set_all_us(1000);  // zostaw bezpiecznie na minimum
 }
 

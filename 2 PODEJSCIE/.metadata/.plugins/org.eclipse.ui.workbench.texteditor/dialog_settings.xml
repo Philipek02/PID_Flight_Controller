@@ -3,6 +3,10 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="false"/>
 	<list key="searchhistory">
+		<item value="try"/>
+		<item value="usart"/>
+		<item value="huart2"/>
+		<item value="HAL_UART_RxCpltCallback"/>
 		<item value="HAL_UART"/>
 		<item value="elapse"/>
 	</list>

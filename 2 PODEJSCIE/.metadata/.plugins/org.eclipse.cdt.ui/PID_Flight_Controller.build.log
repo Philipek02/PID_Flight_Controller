@@ -1,21 +1,25 @@
-15:37:46 **** Incremental Build of configuration Debug for project PID_Flight_Controller ****
+18:09:00 **** Incremental Build of configuration Debug for project PID_Flight_Controller ****
 make -j12 all 
+arm-none-eabi-gcc "../Core/Src/ibus.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L432xx -c -I../Core/Inc -I../Drivers/STM32L4xx_HAL_Driver/Inc -I../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/ibus.d" -MT"Core/Src/ibus.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/ibus.o"
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L432xx -c -I../Core/Inc -I../Drivers/STM32L4xx_HAL_Driver/Inc -I../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
 ../Core/Src/main.c: In function 'main':
-../Core/Src/main.c:149:16: warning: unused variable 'arm_switch' [-Wunused-variable]
-  149 |           bool arm_switch = (arm_raw > 1500);
-      |                ^~~~~~~~~~
+../Core/Src/main.c:193:20: warning: unused variable 'arm_raw' [-Wunused-variable]
+  193 |           uint16_t arm_raw = ibus_read_channel(4);   // np. kanał 5
+      |                    ^~~~~~~
+../Core/Src/main.c:136:12: warning: variable 'last_ndtr' set but not used [-Wunused-but-set-variable]
+  136 |   uint16_t last_ndtr = ibus_dma_ndtr();
+      |            ^~~~~~~~~
 arm-none-eabi-gcc -o "PID_Flight_Controller.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\filip\OneDrive\Dokumenty\PJATK\DRONE\IMPLEMENTACJA\STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="PID_Flight_Controller.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: PID_Flight_Controller.elf
  
 arm-none-eabi-size  PID_Flight_Controller.elf 
 arm-none-eabi-objdump -h -S PID_Flight_Controller.elf  > "PID_Flight_Controller.list"
    text	   data	    bss	    dec	    hex	filename
-  19768	     20	   1924	  21712	   54d0	PID_Flight_Controller.elf
+  23148	     20	   2052	  25220	   6284	PID_Flight_Controller.elf
 Finished building: default.size.stdout
  
 Finished building: PID_Flight_Controller.list
  
 
-15:37:47 Build Finished. 0 errors, 1 warnings. (took 751ms)
+18:09:01 Build Finished. 0 errors, 2 warnings. (took 850ms)
 

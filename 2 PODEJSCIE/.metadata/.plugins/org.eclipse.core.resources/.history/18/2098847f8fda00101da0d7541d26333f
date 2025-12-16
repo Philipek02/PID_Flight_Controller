@@ -1,0 +1,32 @@
+/*
+ * ibus.h
+ *
+ *  Created on: Dec 9, 2025
+ *      Author: filip
+ */
+
+#ifndef IBUS_H
+#define IBUS_H
+
+#pragma once
+#include <stdint.h>
+#include <stdbool.h>
+
+#define IBUS_CHANNELS 14
+
+void ibus_init(void);
+
+/** Zwraca ostatnią poprawną wartość kanału (typowo 1000-2000). idx: 0..13 */
+uint16_t ibus_read_channel(uint8_t idx);
+
+/** Kopiuje wszystkie kanały do tablicy out[14] */
+void ibus_get_channels(uint16_t out[IBUS_CHANNELS]);
+
+/** Czy mamy świeże ramki (np. < 100 ms) */
+bool ibus_is_alive(void);
+
+/** Liczniki debug */
+uint32_t ibus_ok_frames(void);
+uint32_t ibus_bad_frames(void);
+
+#endif // IBUS_H

@@ -5,18 +5,26 @@
  *      Author: filip
  */
 
-#ifndef IBUS_H
-#define IBUS_H
 
-#include "stdint.h"
-#include "stdbool.h"
+#ifndef IBUS_H_
+#define IBUS_H_
 
-void ibus_init(void);
+#include <stdint.h>
+#include <stdbool.h>
 
-// kanały numerujemy 0..13 (CH1 = 0, CH2 = 1, ...)
-uint16_t ibus_read_channel(uint8_t ch);
+#define IBUS_CHANNELS 14
 
-// czy mamy świeży sygnał z odbiornika
-bool ibus_is_signal_valid(void);
+// do podglądu w Watch (albo używaj ibus_read_channel())
+extern volatile uint16_t ibus_ch[IBUS_CHANNELS];
+extern volatile uint32_t ibus_frames_ok;
+extern volatile uint32_t ibus_frames_bad;
 
-#endif // IBUS_H
+void     ibus_init(void);        // start DMA RX na UART1
+void     ibus_process(void);     // wołaj w while(1)
+uint16_t ibus_read_channel(uint8_t ch);  // 0..13
+bool ibus_is_signal_present(void);
+uint16_t ibus_dma_ndtr(void);
+
+
+#endif
+

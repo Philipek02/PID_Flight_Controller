@@ -1,5 +1,7 @@
-../Core/Src/ibus.c:30:6:ibus_init	8	static
-../Core/Src/ibus.c:40:6:HAL_UART_RxCpltCallback	16	static
-../Core/Src/ibus.c:57:13:ibus_parse_frame	40	static
-../Core/Src/ibus.c:93:10:ibus_read_channel	16	static
-../Core/Src/ibus.c:104:6:ibus_is_signal_valid	16	static
+../Core/Src/ibus.c:25:17:ibus_checksum	24	static
+../Core/Src/ibus.c:33:13:ibus_try_parse_from_dma	32	static
+../Core/Src/ibus.c:62:6:ibus_init	8	static
+../Core/Src/ibus.c:73:6:ibus_process	8	static
+../Core/Src/ibus.c:78:6:ibus_is_signal_present	4	static
+../Core/Src/ibus.c:83:10:ibus_dma_ndtr	4	static
+../Core/Src/ibus.c:88:10:ibus_read_channel	16	static

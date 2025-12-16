@@ -1,0 +1,97 @@
+#include "ibus.h"
+#include "usart.h"
+#include "stm32l4xx_hal.h"
+
+#define IBUS_FRAME_SIZE   32
+#define IBUS_CHANNELS     14
+#define IBUS_FAILSAFE_MS  100
+
+static uint8_t  frame[IBUS_FRAME_SIZE];
+static uint8_t  idx = 0;
+static uint8_t  state = 0;   // 0: szukaj 0x20, 1: szukaj 0x40, 2: zbieraj resztę
+
+static uint16_t channels[IBUS_CHANNELS];
+static uint32_t last_frame_time = 0;
+
+// debug
+volatile uint32_t ibus_bytes = 0;
+volatile uint32_t ibus_frames_ok = 0;
+volatile uint32_t ibus_frames_bad = 0;
+
+static void ibus_try_parse_frame(const uint8_t *buf)
+{
+    if (buf[0] != 0x20 || buf[1] != 0x40) { ibus_frames_bad++; return; }
+
+    uint16_t checksum = 0xFFFF;
+    for (int i = 0; i < IBUS_FRAME_SIZE - 2; i++) checksum -= buf[i];
+
+    uint16_t rx_checksum = (uint16_t)buf[IBUS_FRAME_SIZE - 2] |
+                          ((uint16_t)buf[IBUS_FRAME_SIZE - 1] << 8);
+
+    if (checksum != rx_checksum) { ibus_frames_bad++; return; }
+
+    for (int ch = 0; ch < IBUS_CHANNELS; ch++) {
+        int j = 2 + ch * 2;
+        channels[ch] = (uint16_t)buf[j] | ((uint16_t)buf[j + 1] << 8);
+    }
+
+    last_frame_time = HAL_GetTick();
+    ibus_frames_ok++;
+}
+
+// wołasz raz na start
+void ibus_init(void)
+{
+    state = 0;
+    idx = 0;
+}
+
+// wołasz często w pętli głównej (np. w każdym obiegu while(1))
+void ibus_poll(void)
+{
+    uint8_t b;
+
+    // czytaj wszystko co jest w UART FIFO, bez blokowania
+    while (HAL_UART_Receive(&huart1, &b, 1, 0) == HAL_OK)
+    {
+        ibus_bytes++;
+
+        switch (state)
+        {
+            case 0:
+                if (b == 0x20) { frame[0] = b; idx = 1; state = 1; }
+                break;
+
+            case 1:
+                if (b == 0x40) { frame[1] = b; idx = 2; state = 2; }
+                else if (b == 0x20) { frame[0] = 0x20; idx = 1; state = 1; }
+                else { state = 0; idx = 0; }
+                break;
+
+            case 2:
+                frame[idx++] = b;
+                if (idx >= IBUS_FRAME_SIZE) {
+                    ibus_try_parse_frame(frame);
+                    state = 0;
+                    idx = 0;
+                }
+                break;
+
+            default:
+                state = 0;
+                idx = 0;
+                break;
+        }
+    }
+}
+
+uint16_t ibus_read_channel(uint8_t ch)
+{
+    if (ch >= IBUS_CHANNELS) return 1500;
+    return channels[ch];
+}
+
+bool ibus_is_signal_valid(void)
+{
+    return (HAL_GetTick() - last_frame_time) < IBUS_FAILSAFE_MS;
+}

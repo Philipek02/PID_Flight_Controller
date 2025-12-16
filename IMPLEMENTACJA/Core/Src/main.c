@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -34,7 +35,14 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef struct {
+    uint16_t roll;
+    uint16_t pitch;
+    uint16_t throttle;
+    uint16_t yaw;
+    uint16_t arm;
+    uint16_t mode;
+} rc_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -51,6 +59,9 @@
 
 /* USER CODE BEGIN PV */
 volatile uint8_t control_loop_flag = 0;
+
+volatile rc_t rc;
+
 
 /* USER CODE END PV */
 
@@ -93,23 +104,61 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART2_UART_Init();
+  MX_DMA_Init();
   MX_TIM1_Init();
   MX_TIM6_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6);
   ibus_init();
-
+//  HAL_Delay(2000);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 
-  // Czekaj aż przycisk zostanie wciśnięty (PA7 = 0)
-  while (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET)
+  // Jeśli trzymasz przycisk przy starcie -> kalibracja ESC
+  if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET)
   {
-      // tu program stoi i czeka
+      esc_calibrate_all();
+
+      // po kalibracji program zatrzymany zeby odłączyć zasilanie
+      while (1)
+      {
+          HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+          HAL_Delay(200);
+      }
   }
+
+
+
+  // WAIT NA PILOTA (iBUS)
+  uint16_t last_ndtr = ibus_dma_ndtr();
+  uint32_t t0 = HAL_GetTick();
+
+  while (!ibus_is_signal_present())
+  {
+    ibus_process();
+
+    // co ~200ms mignij LED i sprawdź czy DMA w ogóle "żyje"
+    if (HAL_GetTick() - t0 > 200)
+    {
+      t0 = HAL_GetTick();
+      HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+
+      uint16_t now = ibus_dma_ndtr();
+
+      // jeśli NDTR się NIE zmienia -> UART/DMA nie dostaje żadnych bajtów (wina: pin/baud/wiring)
+      // jeśli NDTR się zmienia, a frames_ok nadal 0 -> wina: parser (nagłówek/format)
+      last_ndtr = now;
+    }
+  }
+
+  // Czekaj aż przycisk zostanie wciśnięty (PA7 = 0)
+//  while (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET)
+//  {
+//      // tu program stoi i czeka
+//  }
   motors_arm();
 
   /* USER CODE END 2 */
@@ -119,25 +168,25 @@ int main(void)
   while (1)
   {
 
-	  // PRZELUTOWAĆ PRZYCISK NA PIN A5 I GND       !!!!!!!!!!!!!!!
-	  // PRZELUTOWAĆ PRZYCISK NA PIN A5 I GND       !!!!!!!!!!!!!!!
-	  // PRZELUTOWAĆ PRZYCISK NA PIN A5 I GND       !!!!!!!!!!!!!!!
-	  // PRZELUTOWAĆ PRZYCISK NA PIN A5 I GND       !!!!!!!!!!!!!!!
-	  // PRZELUTOWAĆ PRZYCISK NA PIN A5 I GND       !!!!!!!!!!!!!!!
-	  // PRZELUTOWAĆ PRZYCISK NA PIN A5 I GND       !!!!!!!!!!!!!!!
-	  // PRZELUTOWAĆ PRZYCISK NA PIN A5 I GND       !!!!!!!!!!!!!!!
-
-
-
 	  //DODAC LEDY DEBUGUJĄCE,
 	  //JEDEN OD ARMOWANIA - SWIECI JAK JEST ARM
 
-      HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-      HAL_Delay(1000);
+      static uint16_t led_counter = 0;
+
 
       if (control_loop_flag)
       {
+
           control_loop_flag = 0;   // zużywamy flagę
+
+          // zwykle miganie ledem co sekunde na zasadzie licznika
+          led_counter++;
+          if (led_counter >= 200)   // 200 * 5 ms = 1000 ms
+          {
+              led_counter = 0;
+              HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+          }
+          ibus_process();
 
 //           --- 1. Odczyt RC (iBUS) ---
           uint16_t thr_raw = ibus_read_channel(2);   // przykład: kanał 3 (0-based/1-based sam sobie ustalisz)
@@ -145,8 +194,14 @@ int main(void)
 
           uint16_t throttle_us = thr_raw;
 
+          rc.roll     = ibus_read_channel(0);
+          rc.pitch    = ibus_read_channel(1);
+          rc.throttle = ibus_read_channel(2);
+          rc.yaw      = ibus_read_channel(3);
+          rc.arm      = ibus_read_channel(4);
+          rc.mode     = ibus_read_channel(5);
 
-          bool arm_switch = (arm_raw > 1500);
+
 
           // --- 2. Bezpieczeństwo: ARM/DISARM ---
 //          safety_update(throttle_us, arm_switch /*, inne statusy np. imu_ok, ibus_ok */);
@@ -176,31 +231,16 @@ int main(void)
           mixer_update(u_roll, u_pitch, u_yaw, throttle_us);
 
       }
-//      for(int i=1000; i<1500; i+=100){
-//    	  HAL_Delay(1000);
-//      }
-
-	  set_motor_us(3, 1200);
-
 
   }
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
 
 
-
-  void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-  {
-      if (htim->Instance == TIM6)
-      {
-          control_loop_flag = 1;   // flaga dla pętli głównej
-      }
-  }
   /* USER CODE END 3 */
-
+}
 
 /**
   * @brief System Clock Configuration
@@ -263,7 +303,13 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Instance == TIM6)
+    {
+        control_loop_flag = 1;   // flaga dla pętli głównej
+    }
+}
 /* USER CODE END 4 */
 
 /**

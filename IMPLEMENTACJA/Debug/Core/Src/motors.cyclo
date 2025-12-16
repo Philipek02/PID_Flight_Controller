@@ -3,3 +3,4 @@
 ../Core/Src/motors.c:37:6:motors_set_all_us	2
 ../Core/Src/motors.c:47:6:set_motor_us	9
 ../Core/Src/motors.c:80:6:mixer_update	1
+../Core/Src/motors.c:93:6:esc_calibrate_all	1

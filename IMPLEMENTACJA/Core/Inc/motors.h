@@ -29,6 +29,9 @@ void set_motor_us(uint8_t motor_id, uint16_t us);
 // Miksowanie PID + throttle → wyjścia PWM na 4 silniki
 void mixer_update(float u_roll, float u_pitch, float u_yaw, uint16_t throttle_us);
 
+void esc_calibrate_all(void);
+
+
 //
 
 #endif // MOTORS_H
