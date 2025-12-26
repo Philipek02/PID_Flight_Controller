@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := PID_Flight_Controller
+BUILD_ARTIFACT_NAME := IMPLEMENTACJA
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-PID_Flight_Controller.elf \
+IMPLEMENTACJA.elf \
 
 MAP_FILES += \
-PID_Flight_Controller.map \
+IMPLEMENTACJA.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-PID_Flight_Controller.list \
+IMPLEMENTACJA.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: PID_Flight_Controller.elf secondary-outputs
+main-build: IMPLEMENTACJA.elf secondary-outputs
 
 # Tool invocations
-PID_Flight_Controller.elf PID_Flight_Controller.map: $(OBJS) $(USER_OBJS) C:\Users\filip\OneDrive\Dokumenty\PJATK\DRONE\IMPLEMENTACJA\STM32L432KCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "PID_Flight_Controller.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\filip\OneDrive\Dokumenty\PJATK\DRONE\IMPLEMENTACJA\STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="PID_Flight_Controller.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+IMPLEMENTACJA.elf IMPLEMENTACJA.map: $(OBJS) $(USER_OBJS) C:\Users\filip\OneDrive\Dokumenty\PJATK\DRONE\IMPLEMENTACJA\STM32L432KCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "IMPLEMENTACJA.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\filip\OneDrive\Dokumenty\PJATK\DRONE\IMPLEMENTACJA\STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="IMPLEMENTACJA.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-PID_Flight_Controller.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "PID_Flight_Controller.list"
+IMPLEMENTACJA.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "IMPLEMENTACJA.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) PID_Flight_Controller.elf PID_Flight_Controller.list PID_Flight_Controller.map default.size.stdout
+	-$(RM) IMPLEMENTACJA.elf IMPLEMENTACJA.list IMPLEMENTACJA.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
+#include "i2c.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -27,9 +28,9 @@
 /* USER CODE BEGIN Includes */
 #include "motors.h"
 #include "ibus.h"
-//#include "bno055.h"
-//#include "pid.h"
-//#include "safety.h"
+#include "bno055.h"
+#include "pid.h"
+#include "bno055_stm32.h"
 
 /* USER CODE END Includes */
 
@@ -62,6 +63,18 @@ volatile uint8_t control_loop_flag = 0;
 
 volatile rc_t rc;
 
+#define CTRL_DT 0.005f
+
+static PID_t pid_roll;
+static PID_t pid_pitch;
+
+// progi bezpieczeństwa
+#define THR_DISARM_US 1050
+#define THR_MIN_RUN_US 1100
+
+volatile float dbg_Kp = 4.5;
+volatile float dbg_Ki = 0.0;
+volatile float dbg_Kd = 0.00;
 
 /* USER CODE END PV */
 
@@ -108,9 +121,19 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM6_Init();
   MX_USART1_UART_Init();
+  MX_I2C3_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6);
   ibus_init();
+  bno055_assignI2C(&hi2c3);
+
+  bno055_setup();                 // reset + config
+  bno055_setOperationModeNDOF();  // fuzja sensorów
+  bno055_enableExternalCrystal(); // (opcjonalnie, ale polecane)
+
+  // --- PID (startowe nastawy) ---
+  PID_Init(&pid_roll,  dbg_Kp, dbg_Ki, dbg_Kd,  -200.0f, 200.0f,  -100.0f, 100.0f);
+  PID_Init(&pid_pitch, dbg_Kp, dbg_Ki, dbg_Kd,  -200.0f, 200.0f,  -100.0f, 100.0f);
 //  HAL_Delay(2000);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
@@ -129,6 +152,8 @@ int main(void)
           HAL_Delay(200);
       }
   }
+
+
 
 
 
@@ -165,76 +190,95 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  bno055_vector_t euler;
+  bno055_calibration_state_t cal;
+
+  static uint16_t led_counter = 0;
+
+  // opcjonalnie: do wykrywania zmian nastaw i resetu integratora
+  static float last_Kp = 0.0f, last_Ki = 0.0f, last_Kd = 0.0f;
+
   while (1)
   {
+      // --- czekamy na flagę z TIM6 (200 Hz) ---
+      if (!control_loop_flag)
+          continue;
 
-	  //DODAC LEDY DEBUGUJĄCE,
-	  //JEDEN OD ARMOWANIA - SWIECI JAK JEST ARM
+      control_loop_flag = 0;
 
-      static uint16_t led_counter = 0;
-
-
-      if (control_loop_flag)
+      // --- DEBUG: LED heartbeat ~1 Hz ---
+      led_counter++;
+      if (led_counter >= 200)
       {
-
-          control_loop_flag = 0;   // zużywamy flagę
-
-          // zwykle miganie ledem co sekunde na zasadzie licznika
-          led_counter++;
-          if (led_counter >= 200)   // 200 * 5 ms = 1000 ms
-          {
-              led_counter = 0;
-              HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-          }
-          ibus_process();
-
-//           --- 1. Odczyt RC (iBUS) ---
-          uint16_t thr_raw = ibus_read_channel(2);   // przykład: kanał 3 (0-based/1-based sam sobie ustalisz)
-          uint16_t arm_raw = ibus_read_channel(4);   // np. kanał 5
-
-          uint16_t throttle_us = thr_raw;
-
-          rc.roll     = ibus_read_channel(0);
-          rc.pitch    = ibus_read_channel(1);
-          rc.throttle = ibus_read_channel(2);
-          rc.yaw      = ibus_read_channel(3);
-          rc.arm      = ibus_read_channel(4);
-          rc.mode     = ibus_read_channel(5);
-
-
-
-          // --- 2. Bezpieczeństwo: ARM/DISARM ---
-//          safety_update(throttle_us, arm_switch /*, inne statusy np. imu_ok, ibus_ok */);
-//
-//          if (!safety_is_armed())
-//          {
-//              motors_stop_all();
-//              continue;   // NIE robimy PID, nie czytamy IMU
-//          }
-
-          // --- 3. Odczyt IMU ---
-//          float roll, pitch, yaw;
-//          bno055_read_euler(&roll, &pitch, &yaw);
-
-
-          //TYMCZASOWE INICJALIZACJE ZEBY mixer dzialal nawet bez odczytywania z BNO
-          float u_roll = 0;
-          float u_pitch = 0;
-          float u_yaw = 0;
-
-          // --- 4. PID (zadane kąty = 0) ---
-//          float u_roll  = pid_update(&pid_roll,  0.0f - roll,  0.005f); // dt = 5 ms
-//          float u_pitch = pid_update(&pid_pitch, 0.0f - pitch, 0.005f);
-//          float u_yaw   = pid_update(&pid_yaw,   0.0f - yaw,   0.005f);
-
-          // --- 5. Miksowanie + wyjście na silniki ---
-          mixer_update(u_roll, u_pitch, u_yaw, throttle_us);
-
+          led_counter = 0;
+          HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
       }
 
+      // --- 1) iBUS ---
+      ibus_process();
+
+      rc.roll     = ibus_read_channel(0);
+      rc.pitch    = ibus_read_channel(1);
+      rc.throttle = ibus_read_channel(2);
+      rc.yaw      = ibus_read_channel(3);
+      rc.arm      = ibus_read_channel(4);
+      rc.mode     = ibus_read_channel(5);
+
+      uint16_t throttle_us = rc.throttle;
+
+      // --- 2) IMU ---
+      euler = bno055_getVectorEuler();
+      cal   = bno055_getCalibrationState();   // tylko do debug
+
+      float roll_meas  = (float)euler.y;     // ROLL
+      float pitch_meas = -(float)euler.z;    // PITCH (odwrócona oś)
+      // float yaw_meas = (float)euler.x;    // YAW (nie używamy)
+
+      // --- 3) Bezpieczeństwo: niski gaz ---
+      if (throttle_us < 1050)
+      {
+          PID_Reset(&pid_roll);
+          PID_Reset(&pid_pitch);
+
+          mixer_update(0.0f, 0.0f, 0.0f, 1000);
+          continue;
+      }
+
+      // --- 4) Setpointy (na razie tylko throttle) ---
+      float roll_sp  = 0.0f;
+      float pitch_sp = 0.0f;
+
+      // --- 4.5) LIVE TUNING: podmiana nastaw PID z debugger'a ---
+      pid_roll.kp  = dbg_Kp;
+      pid_roll.ki  = dbg_Ki;
+      pid_roll.kd  = dbg_Kd;
+
+      pid_pitch.kp = dbg_Kp;
+      pid_pitch.ki = dbg_Ki;
+      pid_pitch.kd = dbg_Kd;
+
+      // opcjonalnie (polecam): jeśli zmieniłeś nastawy w locie -> reset integratora
+      if (dbg_Kp != last_Kp || dbg_Ki != last_Ki || dbg_Kd != last_Kd)
+      {
+          PID_Reset(&pid_roll);
+          PID_Reset(&pid_pitch);
+          last_Kp = dbg_Kp;
+          last_Ki = dbg_Ki;
+          last_Kd = dbg_Kd;
+      }
+
+      // --- 5) PID (dt = 0.005 s dla TIM6 = 200 Hz) ---
+      float u_roll  = PID_Update(&pid_roll,  roll_sp,  roll_meas,  CTRL_DT);
+      float u_pitch = PID_Update(&pid_pitch, pitch_sp, pitch_meas, CTRL_DT);
+      float u_yaw   = 0.0f;   // YAW OFF na start
+
+      // --- 6) Mixer + ESC ---
+      mixer_update(u_roll, u_pitch, u_yaw, throttle_us);
   }
 
-    /* USER CODE END WHILE */
+  /* USER CODE END WHILE */
+
 
     /* USER CODE BEGIN 3 */
 
