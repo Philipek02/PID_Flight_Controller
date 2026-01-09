@@ -72,9 +72,9 @@ static PID_t pid_pitch;
 #define THR_DISARM_US 1050
 #define THR_MIN_RUN_US 1100
 
-volatile float dbg_Kp = 4.5;
-volatile float dbg_Ki = 0.0;
-volatile float dbg_Kd = 0.00;
+volatile float dbg_Kp = 2.8;
+volatile float dbg_Ki = 0.17;
+volatile float dbg_Kd = 0.2;
 
 /* USER CODE END PV */
 
@@ -201,7 +201,7 @@ int main(void)
 
   while (1)
   {
-      // --- czekamy na flagę z TIM6 (200 Hz) ---
+      // czeka na flagę z TIM6
       if (!control_loop_flag)
           continue;
 

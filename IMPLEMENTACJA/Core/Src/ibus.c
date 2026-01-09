@@ -36,7 +36,7 @@ static void ibus_try_parse_from_dma(void)
   {
     const uint8_t *f = &ibus_dma_buf[start];
 
-    // nagłówek iBUS (w Twoim przykładzie: 0x20 0x40)
+    // nagłówek iBUS - pomijany
     if (f[0] != 0x20 || f[1] != 0x40) continue;
 
     uint16_t rx_chk = (uint16_t)f[30] | ((uint16_t)f[31] << 8);
