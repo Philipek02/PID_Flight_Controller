@@ -68,10 +68,8 @@ volatile rc_t rc;
 static PID_t pid_roll;
 static PID_t pid_pitch;
 
-// progi bezpieczeństwa
-#define THR_DISARM_US 1050
-#define THR_MIN_RUN_US 1100
 
+// NASTAWY REGULATORA PID
 volatile float dbg_Kp = 2.8;
 volatile float dbg_Ki = 0.17;
 volatile float dbg_Kd = 0.2;
@@ -129,11 +127,12 @@ int main(void)
 
   bno055_setup();                 // reset + config
   bno055_setOperationModeNDOF();  // fuzja sensorów
-  bno055_enableExternalCrystal(); // (opcjonalnie, ale polecane)
+  bno055_enableExternalCrystal(); // zewn zegar
 
-  // --- PID (startowe nastawy) ---
+  // PID - startowe nastawy
   PID_Init(&pid_roll,  dbg_Kp, dbg_Ki, dbg_Kd,  -200.0f, 200.0f,  -100.0f, 100.0f);
   PID_Init(&pid_pitch, dbg_Kp, dbg_Ki, dbg_Kd,  -200.0f, 200.0f,  -100.0f, 100.0f);
+
 //  HAL_Delay(2000);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
@@ -155,8 +154,6 @@ int main(void)
 
 
 
-
-
   // WAIT NA PILOTA (iBUS)
   uint16_t last_ndtr = ibus_dma_ndtr();
   uint32_t t0 = HAL_GetTick();
@@ -165,7 +162,7 @@ int main(void)
   {
     ibus_process();
 
-    // co ~200ms mignij LED i sprawdź czy DMA w ogóle "żyje"
+    // co 200ms mignij LED
     if (HAL_GetTick() - t0 > 200)
     {
       t0 = HAL_GetTick();
@@ -173,17 +170,13 @@ int main(void)
 
       uint16_t now = ibus_dma_ndtr();
 
-      // jeśli NDTR się NIE zmienia -> UART/DMA nie dostaje żadnych bajtów (wina: pin/baud/wiring)
-      // jeśli NDTR się zmienia, a frames_ok nadal 0 -> wina: parser (nagłówek/format)
+      // jeśli NDTR się NIE zmienia -> UART/DMA nie dostaje żadnych bajtów
+      // jeśli NDTR się zmienia, a frames_ok nadal 0 -> wina: parser
       last_ndtr = now;
     }
   }
 
-  // Czekaj aż przycisk zostanie wciśnięty (PA7 = 0)
-//  while (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET)
-//  {
-//      // tu program stoi i czeka
-//  }
+
   motors_arm();
 
   /* USER CODE END 2 */
@@ -207,7 +200,7 @@ int main(void)
 
       control_loop_flag = 0;
 
-      // --- DEBUG: LED heartbeat ~1 Hz ---
+      // DEBUG: mruganie led co 1s
       led_counter++;
       if (led_counter >= 200)
       {
@@ -235,7 +228,7 @@ int main(void)
       float pitch_meas = -(float)euler.z;    // PITCH (odwrócona oś)
       // float yaw_meas = (float)euler.x;    // YAW (nie używamy)
 
-      // --- 3) Bezpieczeństwo: niski gaz ---
+      // Bezpieczeństwo: niski gaz ---
       if (throttle_us < 1050)
       {
           PID_Reset(&pid_roll);
@@ -245,11 +238,11 @@ int main(void)
           continue;
       }
 
-      // --- 4) Setpointy (na razie tylko throttle) ---
+      // Setpointy (na razie tylko throttle)
       float roll_sp  = 0.0f;
       float pitch_sp = 0.0f;
 
-      // --- 4.5) LIVE TUNING: podmiana nastaw PID z debugger'a ---
+      // LIVE TUNING: podmiana nastaw PID z debuggera
       pid_roll.kp  = dbg_Kp;
       pid_roll.ki  = dbg_Ki;
       pid_roll.kd  = dbg_Kd;
@@ -258,7 +251,7 @@ int main(void)
       pid_pitch.ki = dbg_Ki;
       pid_pitch.kd = dbg_Kd;
 
-      // opcjonalnie (polecam): jeśli zmieniłeś nastawy w locie -> reset integratora
+      // do debugowania - jesli zmienilismy nastawy PID -> reset integratora
       if (dbg_Kp != last_Kp || dbg_Ki != last_Ki || dbg_Kd != last_Kd)
       {
           PID_Reset(&pid_roll);
@@ -268,12 +261,12 @@ int main(void)
           last_Kd = dbg_Kd;
       }
 
-      // --- 5) PID (dt = 0.005 s dla TIM6 = 200 Hz) ---
+      // PID (dt = 0.005s dla TIM6 = 200Hz)
       float u_roll  = PID_Update(&pid_roll,  roll_sp,  roll_meas,  CTRL_DT);
       float u_pitch = PID_Update(&pid_pitch, pitch_sp, pitch_meas, CTRL_DT);
       float u_yaw   = 0.0f;   // YAW OFF na start
 
-      // --- 6) Mixer + ESC ---
+      // Mixer - push do silników
       mixer_update(u_roll, u_pitch, u_yaw, throttle_us);
   }
 
