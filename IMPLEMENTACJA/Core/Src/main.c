@@ -140,6 +140,7 @@ int main(void)
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 
   // Jeśli trzymasz przycisk przy starcie -> kalibracja ESC
+  // B1 TO JEST A5 NA STM
   if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET)
   {
       esc_calibrate_all();
@@ -270,8 +271,7 @@ int main(void)
       mixer_update(u_roll, u_pitch, u_yaw, throttle_us);
   }
 
-  /* USER CODE END WHILE */
-
+    /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 

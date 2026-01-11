@@ -1,33 +1,20 @@
 #include "motors.h"
 
-// ----------------------------------------------------------
-// USTAWIENIA SPRZĘTOWE DLA TWOJEGO STM32L432KC
-// TIM1 → CH1, CH2, CH3, CH4 sterują ESC
-// ----------------------------------------------------------
 
 extern TIM_HandleTypeDef htim1;
-// htim1 musi być widoczny – HAL generuje go w main.c, więc używamy extern.
+// htim1 musi być widoczny
 
-// Tablica aktualnych wartości PWM dla diagnostyki lub logów
+// Tablica aktualnych wartości PWM do debug
 static uint16_t motor_output_us[4] = {1000,1000,1000,1000};
 
 
-// ----------------------------------------------------------
-// FUNKCJA: motors_init()
-// (opcjonalna – możesz użyć do dodatkowych ustawień, jeśli kiedyś potrzebne)
-// ----------------------------------------------------------
 void motors_arm(void)
 {
-    // Ustaw początkowe wartości PWM dla bezpieczeństwa
-    motors_stop_all();
+    motors_stop_all(); // MIN US
     HAL_Delay(2000);
 }
 
 
-// ----------------------------------------------------------
-// FUNKCJA: motors_stop_all()
-// Ustawia wszystkie silniki na minimalny sygnał (OFF)
-// ----------------------------------------------------------
 void motors_stop_all(void)
 {
     for (int i = 1; i <= 4; i++)
@@ -40,10 +27,7 @@ void motors_set_all_us(uint16_t us)
         set_motor_us(i, us);
 }
 
-// ----------------------------------------------------------
-// FUNKCJA: set_motor_us()
 // Ustawia PWM w mikrosekundach na danym silniku
-// ----------------------------------------------------------
 void set_motor_us(uint8_t motor_id, uint16_t us)
 {
     // Zabezpieczenia
@@ -65,10 +49,7 @@ void set_motor_us(uint8_t motor_id, uint16_t us)
 }
 
 
-// ----------------------------------------------------------
-// FUNKCJA: mixer_update()
-// Miksowanie sygnałów roll/pitch/yaw oraz throttle do 4 silników.
-// Konfiguracja quad X:
+// Miksowanie sygnałów roll/pitch/yaw oraz throttle do 4 silników
 //
 //        (Front)
 //      M2       M3
@@ -76,7 +57,6 @@ void set_motor_us(uint8_t motor_id, uint16_t us)
 //      M1       M4
 //        (Back)
 //
-// ----------------------------------------------------------
 void mixer_update(float u_roll, float u_pitch, float u_yaw, uint16_t throttle_us)
 {
     float m1 = throttle_us - u_roll - u_pitch - u_yaw; // M1: rear left
@@ -93,11 +73,6 @@ void mixer_update(float u_roll, float u_pitch, float u_yaw, uint16_t throttle_us
 void esc_calibrate_all(void)
 {
     // !!! ZDEJMIJ ŚMIGŁA !!!
-    // Procedura:
-    // 1) MCU wystawia MAX (2000us)
-    // 2) Podłączasz baterię ESC
-    // 3) Po kilku sekundach MCU schodzi na MIN (1000us)
-    // 4) ESC zapisują zakres
 
     motors_set_all_us(2000);
     HAL_Delay(6000);          // czas na wykrycie MAX i sygnały dźwiękowe
@@ -105,6 +80,6 @@ void esc_calibrate_all(void)
     motors_set_all_us(1000);
     HAL_Delay(6000);          // czas na zapis MIN
 
-    motors_set_all_us(1000);  // zostaw bezpiecznie na minimum
+    motors_set_all_us(1000);  // zostaw na minimum
 }
 

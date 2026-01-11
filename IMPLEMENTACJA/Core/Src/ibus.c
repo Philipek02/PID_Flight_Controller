@@ -1,5 +1,5 @@
 #include "ibus.h"
-#include "usart.h"        // extern UART_HandleTypeDef huart1;
+#include "usart.h"
 #include "stm32l4xx_hal.h"
 #include <string.h>
 #include <stdbool.h>
@@ -29,7 +29,7 @@ static uint16_t ibus_checksum(const uint8_t *frame)
   return (uint16_t)(0xFFFFu - sum);
 }
 
-// Przeszukuje bufor DMA; jak znajdzie poprawną ramkę iBUS, to aktualizuje ibus_ch[]
+// Przeszukuje bufor DMA- jak znajdzie poprawną ramkę iBUS, to aktualizuje ibus_ch[]
 static void ibus_try_parse_from_dma(void)
 {
   for (int start = 0; start <= (IBUS_DMA_BUF_SZ - IBUS_FRAME_SZ); start++)
@@ -61,12 +61,12 @@ static void ibus_try_parse_from_dma(void)
 
 void ibus_init(void)
 {
-  // opcjonalnie: wyczyść na start
+  // wyczyść na start
   memset((void*)ibus_ch, 0, sizeof(ibus_ch));
   ibus_frames_ok = 0;
   ibus_frames_bad = 0;
 
-  // Start odbioru iBUS po USART1 RX przez DMA (ustaw DMA w CubeMX jako CIRCULAR)
+  // Start odbioru iBUS po USART1 RX przez DMA
   HAL_UART_Receive_DMA(&huart1, ibus_dma_buf, IBUS_DMA_BUF_SZ);
 }
 
@@ -77,7 +77,7 @@ void ibus_process(void)
 
 bool ibus_is_signal_present(void)
 {
-  // przynajmniej 1 poprawna ramka = pilot gada
+  // przynajmniej 1 poprawna ramka - jest sygnał poprawny z pilota
   return (ibus_frames_ok > 0);
 }
 uint16_t ibus_dma_ndtr(void)
