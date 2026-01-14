@@ -63,8 +63,8 @@ void Error_Handler(void);
 #define B3_BNO_RST_GPIO_Port GPIOA
 #define B2_Pin GPIO_PIN_5
 #define B2_GPIO_Port GPIOA
-#define B1_Pin GPIO_PIN_6
-#define B1_GPIO_Port GPIOA
+#define B1_cal_Pin GPIO_PIN_6
+#define B1_cal_GPIO_Port GPIOA
 #define SWDIO_Pin GPIO_PIN_13
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14

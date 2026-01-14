@@ -73,12 +73,13 @@ void mixer_update(float u_roll, float u_pitch, float u_yaw, uint16_t throttle_us
 void esc_calibrate_all(void)
 {
     // !!! ZDEJMIJ ŚMIGŁA !!!
+    HAL_Delay(3000);
 
     motors_set_all_us(2000);
-    HAL_Delay(6000);          // czas na wykrycie MAX i sygnały dźwiękowe
+    HAL_Delay(3000);          // czas na wykrycie MAX i sygnały dźwiękowe
 
     motors_set_all_us(1000);
-    HAL_Delay(6000);          // czas na zapis MIN
+    HAL_Delay(3000);          // czas na zapis MIN
 
     motors_set_all_us(1000);  // zostaw na minimum
 }

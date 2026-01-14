@@ -31,6 +31,10 @@
 #include "bno055.h"
 #include "pid.h"
 #include "bno055_stm32.h"
+#include <stdio.h>
+
+extern UART_HandleTypeDef huart2;
+
 
 /* USER CODE END Includes */
 
@@ -65,14 +69,21 @@ volatile rc_t rc;
 
 #define CTRL_DT 0.005f
 
+#define RC_DEADBAND      0.05f     // 5% drązla
+#define MAX_ANGLE_DEG    25.0f     // roll/pitch max z pilota
+#define MAX_YAW_RATE_DPS 120.0f    // yaw rate z pilota
+
+
 static PID_t pid_roll;
 static PID_t pid_pitch;
 
 
+
+
 // NASTAWY REGULATORA PID
-volatile float dbg_Kp = 2.8;
-volatile float dbg_Ki = 0.17;
-volatile float dbg_Kd = 0.2;
+volatile float dbg_Kp = 6.5;
+volatile float dbg_Ki = 0.3;
+volatile float dbg_Kd = 0.7;
 
 /* USER CODE END PV */
 
@@ -83,7 +94,26 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static inline float clampf(float x, float lo, float hi)
+{
+    if (x < lo) return lo;
+    if (x > hi) return hi;
+    return x;
+}
 
+static inline float apply_deadband(float x, float db)
+{
+    if (x > -db && x < db) return 0.0f;
+    // opcjonalnie: rescale po deadband, żeby nie tracić zakresu
+    if (x > 0) return (x - db) / (1.0f - db);
+    else       return (x + db) / (1.0f - db);
+}
+
+static inline float rc_us_to_norm(uint16_t us)
+{
+    float x = ((float)us - 1500.0f) / 500.0f;   // -1 .. +1
+    return clampf(x, -1.0f, 1.0f);
+}
 /* USER CODE END 0 */
 
 /**
@@ -120,6 +150,7 @@ int main(void)
   MX_TIM6_Init();
   MX_USART1_UART_Init();
   MX_I2C3_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6);
   ibus_init();
@@ -130,8 +161,8 @@ int main(void)
   bno055_enableExternalCrystal(); // zewn zegar
 
   // PID - startowe nastawy
-  PID_Init(&pid_roll,  dbg_Kp, dbg_Ki, dbg_Kd,  -200.0f, 200.0f,  -100.0f, 100.0f);
-  PID_Init(&pid_pitch, dbg_Kp, dbg_Ki, dbg_Kd,  -200.0f, 200.0f,  -100.0f, 100.0f);
+  PID_Init(&pid_roll,  dbg_Kp, dbg_Ki, dbg_Kd,  -300.0f, 300.0f,  -150.0f, 150.0f);
+  PID_Init(&pid_pitch, dbg_Kp, dbg_Ki, dbg_Kd,  -300.0f, 300.0f,  -150.0f, 150.0f);
 
 //  HAL_Delay(2000);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
@@ -141,15 +172,17 @@ int main(void)
 
   // Jeśli trzymasz przycisk przy starcie -> kalibracja ESC
   // B1 TO JEST A5 NA STM
-  if (HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == GPIO_PIN_SET)
+  if (HAL_GPIO_ReadPin(B1_cal_GPIO_Port, B1_cal_Pin) == GPIO_PIN_RESET)
   {
+  	  HAL_Delay(4000);
+
       esc_calibrate_all();
 
       // po kalibracji program zatrzymany zeby odłączyć zasilanie
       while (1)
       {
           HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-          HAL_Delay(200);
+          HAL_Delay(50);
       }
   }
 
@@ -164,7 +197,7 @@ int main(void)
     ibus_process();
 
     // co 200ms mignij LED
-    if (HAL_GetTick() - t0 > 200)
+    if (HAL_GetTick() - t0 > 2000)
     {
       t0 = HAL_GetTick();
       HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
@@ -209,7 +242,7 @@ int main(void)
           HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
       }
 
-      // --- 1) iBUS ---
+      // iBUS to info tylko do debugowania
       ibus_process();
 
       rc.roll     = ibus_read_channel(0);
@@ -239,9 +272,28 @@ int main(void)
           continue;
       }
 
-      // Setpointy (na razie tylko throttle)
-      float roll_sp  = 0.0f;
-      float pitch_sp = 0.0f;
+      // Setpointy z pilota
+      float roll_in  = rc_us_to_norm(rc.roll);
+      float pitch_in = rc_us_to_norm(rc.pitch);
+      float yaw_in   = rc_us_to_norm(rc.yaw);
+
+      // deadband
+      roll_in  = apply_deadband(roll_in,  RC_DEADBAND);
+      pitch_in = apply_deadband(pitch_in, RC_DEADBAND);
+      yaw_in   = apply_deadband(yaw_in,   RC_DEADBAND);
+
+      // (opcjonalnie) odwrócenie osi jeśli drążek działa “na odwrót”
+      // roll_in  = -roll_in;
+      // pitch_in = -pitch_in;
+      // yaw_in   = -yaw_in;
+
+      // ANGLE MODE dla roll/pitch
+      float roll_sp  = roll_in  * MAX_ANGLE_DEG;
+      float pitch_sp = pitch_in * MAX_ANGLE_DEG;
+
+      // YAW jako RATE MODE
+      float yaw_rate_sp = yaw_in * MAX_YAW_RATE_DPS;
+
 
       // LIVE TUNING: podmiana nastaw PID z debuggera
       pid_roll.kp  = dbg_Kp;
@@ -262,15 +314,26 @@ int main(void)
           last_Kd = dbg_Kd;
       }
 
+      static uint8_t uart_div = 0;
+
+      uart_div++;
+      if (uart_div >= 20) // 200Hz / 20 = 10Hz
+      {
+          uart_div = 0;
+          printf("ROLL=%.2f  PITCH=%.2f\r\n", roll_meas, pitch_meas);
+          printf("roll out_min=%.2f  out_max=%.2f\r\n", &pid_roll.out_min, &pid_roll.out_max);
+          printf("pitch out_min=%.2f  out_max=%.2f\r\n", &pid_pitch.out_min, &pid_pitch.out_max);
+
+      }
+
       // PID (dt = 0.005s dla TIM6 = 200Hz)
       float u_roll  = PID_Update(&pid_roll,  roll_sp,  roll_meas,  CTRL_DT);
       float u_pitch = PID_Update(&pid_pitch, pitch_sp, pitch_meas, CTRL_DT);
-      float u_yaw   = 0.0f;   // YAW OFF na start
+      float u_yaw   = yaw_rate_sp;   // YAW bez pida poki co
 
       // Mixer - push do silników
       mixer_update(u_roll, u_pitch, u_yaw, throttle_us);
   }
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -347,6 +410,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         control_loop_flag = 1;   // flaga dla pętli głównej
     }
 }
+
+int _write(int file, char *ptr, int len)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t*)ptr, len, HAL_MAX_DELAY);
+    return len;
+}
+
+
+
+
 /* USER CODE END 4 */
 
 /**
