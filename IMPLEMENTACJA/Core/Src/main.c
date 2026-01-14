@@ -254,7 +254,7 @@ int main(void)
 
       uint16_t throttle_us = rc.throttle;
 
-      // --- 2) IMU ---
+      // IMU
       euler = bno055_getVectorEuler();
       cal   = bno055_getCalibrationState();   // tylko do debug
 
@@ -262,7 +262,7 @@ int main(void)
       float pitch_meas = -(float)euler.z;    // PITCH (odwrócona oś)
       // float yaw_meas = (float)euler.x;    // YAW (nie używamy)
 
-      // Bezpieczeństwo: niski gaz ---
+      // Bezpieczeństwo: niski gaz
       if (throttle_us < 1050)
       {
           PID_Reset(&pid_roll);
@@ -282,10 +282,6 @@ int main(void)
       pitch_in = apply_deadband(pitch_in, RC_DEADBAND);
       yaw_in   = apply_deadband(yaw_in,   RC_DEADBAND);
 
-      // (opcjonalnie) odwrócenie osi jeśli drążek działa “na odwrót”
-      // roll_in  = -roll_in;
-      // pitch_in = -pitch_in;
-      // yaw_in   = -yaw_in;
 
       // ANGLE MODE dla roll/pitch
       float roll_sp  = roll_in  * MAX_ANGLE_DEG;
