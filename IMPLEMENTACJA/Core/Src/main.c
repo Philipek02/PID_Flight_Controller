@@ -81,9 +81,9 @@ static PID_t pid_pitch;
 
 
 // NASTAWY REGULATORA PID
-volatile float dbg_Kp = 6.5;
-volatile float dbg_Ki = 0.3;
-volatile float dbg_Kd = 0.7;
+volatile float dbg_Kp = 4.2;
+volatile float dbg_Ki = 0.2;
+volatile float dbg_Kd = 0.3;
 
 /* USER CODE END PV */
 
