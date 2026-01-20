@@ -63,17 +63,18 @@ typedef struct {
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile uint8_t control_loop_flag = 0;
+volatile uint8_t control_loop_flag = 0; // flaga dla TIM6
 
 volatile rc_t rc;
 
-#define CTRL_DT 0.005f
+#define CTRL_DT 0.005f // dt dla pid
 
 #define RC_DEADBAND      0.05f     // 5% drązla
 #define MAX_ANGLE_DEG    25.0f     // roll/pitch max z pilota
 #define MAX_YAW_RATE_DPS 120.0f    // yaw rate z pilota
 
 
+// kontrolery pid dla obu osi
 static PID_t pid_roll;
 static PID_t pid_pitch;
 
@@ -94,24 +95,26 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+//podstawowy clampf dla pilota
 static inline float clampf(float x, float lo, float hi)
 {
     if (x < lo) return lo;
     if (x > hi) return hi;
     return x;
 }
-
+// deadband dla pilota - male odchylenia drazka sa ignorowane
 static inline float apply_deadband(float x, float db)
 {
     if (x > -db && x < db) return 0.0f;
-    // opcjonalnie: rescale po deadband, żeby nie tracić zakresu
+    //rescale po deadband
     if (x > 0) return (x - db) / (1.0f - db);
     else       return (x + db) / (1.0f - db);
 }
 
+//konwersja z us na -1..1
 static inline float rc_us_to_norm(uint16_t us)
 {
-    float x = ((float)us - 1500.0f) / 500.0f;   // -1 .. +1
+    float x = ((float)us - 1500.0f) / 500.0f;
     return clampf(x, -1.0f, 1.0f);
 }
 /* USER CODE END 0 */
@@ -157,10 +160,10 @@ int main(void)
   bno055_assignI2C(&hi2c3);
 
   bno055_setup();                 // reset + config
-  bno055_setOperationModeNDOF();  // fuzja sensorów
+  bno055_setOperationModeNDOF();  // fuzja sensorów - w razie czegho mozna sprawdzac tryb IMU gdzie wylaczamy magnetometr
   bno055_enableExternalCrystal(); // zewn zegar
 
-  // PID - startowe nastawy
+  // PID startowe nastawy
   PID_Init(&pid_roll,  dbg_Kp, dbg_Ki, dbg_Kd,  -300.0f, 300.0f,  -150.0f, 150.0f);
   PID_Init(&pid_pitch, dbg_Kp, dbg_Ki, dbg_Kd,  -300.0f, 300.0f,  -150.0f, 150.0f);
 
@@ -186,8 +189,6 @@ int main(void)
       }
   }
 
-
-
   // WAIT NA PILOTA (iBUS)
   uint16_t last_ndtr = ibus_dma_ndtr();
   uint32_t t0 = HAL_GetTick();
@@ -205,7 +206,7 @@ int main(void)
       uint16_t now = ibus_dma_ndtr();
 
       // jeśli NDTR się NIE zmienia -> UART/DMA nie dostaje żadnych bajtów
-      // jeśli NDTR się zmienia, a frames_ok nadal 0 -> wina: parser
+      // jeśli NDTR się zmienia, a frames_ok nadal 0 -> winny jest parser
       last_ndtr = now;
     }
   }
@@ -218,23 +219,23 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+  //wektory z bno
   bno055_vector_t euler;
   bno055_calibration_state_t cal;
 
   static uint16_t led_counter = 0;
 
-  // opcjonalnie: do wykrywania zmian nastaw i resetu integratora
   static float last_Kp = 0.0f, last_Ki = 0.0f, last_Kd = 0.0f;
 
   while (1)
   {
-      // czeka na flagę z TIM6
+      // czeka na flagę z TIM6 co 200hz
       if (!control_loop_flag)
           continue;
 
       control_loop_flag = 0;
 
-      // DEBUG: mruganie led co 1s
+      // mruganie led co 1s
       led_counter++;
       if (led_counter >= 200)
       {
@@ -242,7 +243,7 @@ int main(void)
           HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
       }
 
-      // iBUS to info tylko do debugowania
+      // iBUS to info tylko do debugowania - w pozniej mozna usuwac zeby zaoszczedzic czas petli glownej
       ibus_process();
 
       rc.roll     = ibus_read_channel(0);
@@ -255,14 +256,14 @@ int main(void)
       uint16_t throttle_us = rc.throttle;
 
       // IMU
-      euler = bno055_getVectorEuler();
+      euler = bno055_getVectorEuler();  // katy eulera z bno - wycylenia
       cal   = bno055_getCalibrationState();   // tylko do debug
 
       float roll_meas  = (float)euler.y;     // ROLL
       float pitch_meas = -(float)euler.z;    // PITCH (odwrócona oś)
       // float yaw_meas = (float)euler.x;    // YAW (nie używamy)
 
-      // Bezpieczeństwo: niski gaz
+      // Bezpieczenstwo: niski gaz
       if (throttle_us < 1050)
       {
           PID_Reset(&pid_roll);
@@ -310,6 +311,8 @@ int main(void)
           last_Kd = dbg_Kd;
       }
 
+
+      // tez DEBUGGING - SERIAL PORT - mozna usunac w przyszlosci zeby przyspieszyc
       static uint8_t uart_div = 0;
 
       uart_div++;
@@ -317,8 +320,8 @@ int main(void)
       {
           uart_div = 0;
           printf("ROLL=%.2f  PITCH=%.2f\r\n", roll_meas, pitch_meas);
-          printf("roll out_min=%.2f  out_max=%.2f\r\n", &pid_roll.out_min, &pid_roll.out_max);
-          printf("pitch out_min=%.2f  out_max=%.2f\r\n", &pid_pitch.out_min, &pid_pitch.out_max);
+          printf("roll out_min=%.2f  out_max=%.2f\r\n", (double)pid_roll.out_min, (double)pid_roll.out_max);
+          printf("pitch out_min=%.2f out_max=%.2f\r\n", (double)pid_pitch.out_min, (double)pid_pitch.out_max);
 
       }
 
@@ -407,6 +410,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
 }
 
+// obsluga uart2 - odczyt na serial porcie
 int _write(int file, char *ptr, int len)
 {
     HAL_UART_Transmit(&huart2, (uint8_t*)ptr, len, HAL_MAX_DELAY);

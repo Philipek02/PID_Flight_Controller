@@ -1,3 +1,7 @@
+// biblioteka zewnetrzna bno055
+//autor: IVYKNOB
+
+
 #ifndef BNO055_STM32_H_
 #define BNO055_STM32_H_
 

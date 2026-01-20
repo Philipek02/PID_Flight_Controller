@@ -10,7 +10,7 @@ static uint16_t motor_output_us[4] = {1000,1000,1000,1000};
 
 void motors_arm(void)
 {
-    motors_stop_all(); // MIN US
+    motors_stop_all();
     HAL_Delay(2000);
 }
 
@@ -30,7 +30,7 @@ void motors_set_all_us(uint16_t us)
 // Ustawia PWM w mikrosekundach na danym silniku
 void set_motor_us(uint8_t motor_id, uint16_t us)
 {
-    // Zabezpieczenia
+    // Zabezpieczenia podstawowy clamp
     if (motor_id < 1 || motor_id > 4) return;
 
     if (us < MOTOR_MIN_US) us = MOTOR_MIN_US;
@@ -62,12 +62,12 @@ void mixer_update(float u_roll, float u_pitch, float u_yaw, uint16_t throttle_us
     float m1 = throttle_us - u_roll - u_pitch - u_yaw; // M1: rear left
     float m2 = throttle_us - u_roll + u_pitch + u_yaw; // M2: front left
     float m3 = throttle_us + u_roll + u_pitch - u_yaw; // M3: front right
-    float m4 = throttle_us + u_roll - u_pitch + u_yaw; // M4: rear right
+    float m4 = throttle_us + u_roll - u_pitch + u_yaw; // M4:rear right
 
-    set_motor_us(1, (uint16_t)m1);    // rear left
-    set_motor_us(2, (uint16_t)m2);    // front left
-    set_motor_us(3, (uint16_t)m3);    // front right
-    set_motor_us(4, (uint16_t)m4);    // rear right
+    set_motor_us(1, (uint16_t)m1);// rear left
+    set_motor_us(2, (uint16_t)m2); // front left
+    set_motor_us(3, (uint16_t)m3); // front right
+    set_motor_us(4, (uint16_t)m4);// rear right
 }
 
 void esc_calibrate_all(void)

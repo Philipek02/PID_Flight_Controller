@@ -1,3 +1,6 @@
+// biblioteka zewnetrzna bno055
+//autor: IVYKNOB
+
 #ifndef BNO055_H_
 #define BNO055_H_
 

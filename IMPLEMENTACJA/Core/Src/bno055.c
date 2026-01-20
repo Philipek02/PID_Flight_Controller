@@ -1,3 +1,6 @@
+// biblioteka zewnetrzna bno055
+//autor: IVYKNOB
+
 #include <bno055.h>
 #include <string.h>
 

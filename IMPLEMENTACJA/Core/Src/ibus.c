@@ -29,14 +29,14 @@ static uint16_t ibus_checksum(const uint8_t *frame)
   return (uint16_t)(0xFFFFu - sum);
 }
 
-// Przeszukuje bufor DMA- jak znajdzie poprawną ramkę iBUS, to aktualizuje ibus_ch[]
+// Przeszukuje bufor DMA- jak znajdzie poprawna ramke iBUS to aktualizuje ibus_ch[]
 static void ibus_try_parse_from_dma(void)
 {
   for (int start = 0; start <= (IBUS_DMA_BUF_SZ - IBUS_FRAME_SZ); start++)
   {
     const uint8_t *f = &ibus_dma_buf[start];
 
-    // nagłówek iBUS - pomijany
+    // header iBUS - pomijany
     if (f[0] != 0x20 || f[1] != 0x40) continue;
 
     uint16_t rx_chk = (uint16_t)f[30] | ((uint16_t)f[31] << 8);
@@ -61,12 +61,12 @@ static void ibus_try_parse_from_dma(void)
 
 void ibus_init(void)
 {
-  // wyczyść na start
+  // wyczysc na start
   memset((void*)ibus_ch, 0, sizeof(ibus_ch));
   ibus_frames_ok = 0;
   ibus_frames_bad = 0;
 
-  // Start odbioru iBUS po USART1 RX przez DMA
+  // Start odbioru iBUS
   HAL_UART_Receive_DMA(&huart1, ibus_dma_buf, IBUS_DMA_BUF_SZ);
 }
 
