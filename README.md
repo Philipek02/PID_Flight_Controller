@@ -5,7 +5,7 @@
 Projekt implementacji regulatora **PID / PD / P** dla wielowirnikowego drona, zrealizowany na mikrokontrolerze **STM32L432KC**.  
 Repozytorium zawiera kompletną implementację firmware, materiały pomocnicze oraz dokumentację wykorzystaną w pracy inżynierskiej.
 
-## 🎯 Cel projektu
+## Cel projektu
 Celem projektu było:
 - zaprojektowanie i implementacja algorytmów regulacji **P / PD / PID**,
 - stabilizacja orientacji drona w osiach **Roll / Pitch / Yaw**,
@@ -16,7 +16,7 @@ Projekt stanowi część **pracy inżynierskiej**.
 
 ---
 
-## 🧠 Zastosowane algorytmy
+## Zastosowane algorytmy
 - Regulator **P**
 - Regulator **PD**
 - Regulator **PID**
@@ -27,7 +27,7 @@ Schematy i wizualizacje regulatorów znajdują się w katalogu `materiały pomoc
 
 ---
 
-## 🛠️ Sprzęt
+## Sprzęt
 - **Mikrokontroler:** STM32L432KC
 - **Czujniki:** IMU (żyroskop + akcelerometr)
 - **Sterowanie:** Aparatura RC
@@ -36,7 +36,7 @@ Schematy i wizualizacje regulatorów znajdują się w katalogu `materiały pomoc
 
 ---
 
-## 💻 Oprogramowanie
+## Oprogramowanie
 - **IDE:** STM32CubeIDE
 - **Framework:** STM32 HAL + CMSIS
 - **Język:** C
@@ -44,7 +44,7 @@ Schematy i wizualizacje regulatorów znajdują się w katalogu `materiały pomoc
 
 ---
 
-## 📂 Struktura projektu
+## Struktura projektu
 
 PID_Flight_Controller-main/  
 ├── IMPLEMENTACJA/  
@@ -65,7 +65,7 @@ PID_Flight_Controller-main/
 
 ---
 
-## 🚀 Uruchomienie projektu
+## Uruchomienie projektu
 1. Otwórz `STM32CubeIDE`
 2. Załaduj projekt z katalogu `IMPLEMENTACJA`
 3. Sprawdź konfigurację pinów w `IMPLEMENTACJA.ioc`
@@ -74,7 +74,7 @@ PID_Flight_Controller-main/
 
 ---
 
-## 📊 Strojenie regulatora PID
+## Strojenie regulatora PID
 Parametry regulatora:
 - `Kp`
 - `Ki`
@@ -85,7 +85,7 @@ materiały pomocnicze/
 
 ---
 
-## 🧪 Testy
+## Testy
 - Testy statyczne na stanowisku
 - Testy dynamiczne z aparaturą RC
 - Analiza odpowiedzi układu na zakłócenia
@@ -93,26 +93,26 @@ materiały pomocnicze/
 
 ---
 
-## 📄 Dokumentacja
-- 📘 Praca inżynierska (PDF)
-- 📐 Schematy połączeń
-- 🧩 Diagramy blokowe algorytmów
-- 🖼️ Zdjęcia i wizualizacje stanowiska testowego
+## Dokumentacja
+- Praca inżynierska (PDF)
+- Schematy połączeń
+- Diagramy blokowe algorytmów
+- Zdjęcia i wizualizacje stanowiska testowego
 
 ---
 
-## ⚠️ Status projektu
+## Status projektu
 Projekt **ukończony** — rozwijany w ramach pracy inżynierskiej.  
 Repozytorium ma charakter **edukacyjny i badawczy**.
 
 ---
 
-## 👤 Autor
+## Autor
 **Filip Pańczak**  
 Praca inżynierska – elektronika / systemy wbudowane / sterowanie
 
 ---
 
-## 📜 Licencja
+## Licencja
 Projekt udostępniony do celów edukacyjnych.  
 Wykorzystanie komercyjne wymaga zgody autora.
